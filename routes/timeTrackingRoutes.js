@@ -13,6 +13,12 @@ router.post("/start", authMiddleware.authenticateJWT, timeTrackingController.sta
 // ✅ Stop tracking and assign details
 router.post("/stop", authMiddleware.authenticateJWT, timeTrackingController.stopTracking);
 
+router.post("/manual", authMiddleware.authenticateJWT, timeTrackingController.addManualTracking);
+
+router.delete("/:id", authMiddleware.authenticateJWT, timeTrackingController.deleteTracking);
+
+router.put("/:id", authMiddleware.authenticateJWT, timeTrackingController.updateTracking);
+
 // ✅ Get active tracking session
 router.get("/active", authMiddleware.authenticateJWT, timeTrackingController.getActiveTracking);
 
@@ -24,5 +30,7 @@ router.get("/entries", authMiddleware.authenticateJWT, timeTrackingController.ge
 
 // ✅ Get assigned customers for the user
 router.get("/assigned-customers", authMiddleware.authenticateJWT, timeTrackingController.getAssignedCustomers);
+
+router.get("/:id/summary", authMiddleware.authenticateJWT, timeTrackingController.getCustomerMonthlySummary);
 
 module.exports = router;

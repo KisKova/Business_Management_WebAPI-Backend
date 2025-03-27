@@ -41,6 +41,20 @@ exports.stopTracking = async (req, res) => {
     }
 };
 
+exports.deleteTracking = async (req, res) => {
+    try {
+        const trackingId = req.params.id;
+        const userId = req.user.userId;
+        const isAdmin = req.user.role === "admin";
+
+        const deleted = await timeTrackingModel.deleteTracking(trackingId, userId, isAdmin);
+        res.status(200).json({ message: "Tracking deleted", deleted });
+    } catch (error) {
+        console.error("Error deleting tracking:", error);
+        res.status(500).json({ message: "Error deleting tracking." });
+    }
+};
+
 /* ✅ Get active time tracking session for a user
 exports.getActiveTracking = async (req, res) => {
     try {
@@ -115,3 +129,104 @@ exports.getAllActiveTracking = async (req, res) => {
         res.status(500).json({ message: "Server error fetching active time tracking." });
     }
 };
+
+// ✅ Add Manual Time Tracking with Auto-Calculated End Time
+exports.addManualTracking = async (req, res) => {
+    const {
+        customer_id,
+        project_id,
+        task_id,
+        start_time,
+        duration_hours,
+        duration_minutes,
+        note
+    } = req.body;
+
+    const userId = req.user.userId;
+
+    try {
+        if (!customer_id || !project_id || !task_id || !start_time || !duration_hours || !duration_minutes) {
+            return res.status(400).json({ message: "All fields are required." });
+        }
+
+        // ✅ Calculate end_time
+        const start = new Date(start_time);
+        const end = new Date(start);
+        end.setHours(end.getHours() + parseInt(duration_hours));
+        end.setMinutes(end.getMinutes() + parseInt(duration_minutes));
+
+        const end_time = end.toISOString(); // Optional: use as string
+
+        // ✅ Send end_time to the model
+        const newTracking = await timeTrackingModel.addManualTracking(
+            userId,
+            customer_id,
+            project_id,
+            task_id,
+            start.toISOString(),
+            end_time,
+            duration_hours,
+            duration_minutes,
+            note
+        );
+
+        res.status(201).json(newTracking);
+    } catch (error) {
+        console.error("Error adding manual time tracking:", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+};
+
+
+// ✅ Update a time tracking entry
+exports.updateTracking = async (req, res) => {
+    try {
+        const trackingId = req.params.id;
+        const userId = req.user.userId;
+        const isAdmin = req.user.role === "admin";
+
+        const {
+            start_time,
+            duration_hours,
+            duration_minutes,
+            customer_id,
+            project_id,
+            task_id,
+            note
+        } = req.body;
+
+        if (!start_time || !duration_hours || !duration_minutes || !customer_id || !project_id || !task_id) {
+            return res.status(400).json({ message: "Missing required fields." });
+        }
+
+        const updated = await timeTrackingModel.updateTracking(
+            trackingId,
+            userId,
+            isAdmin,
+            start_time,
+            duration_hours,
+            duration_minutes,
+            customer_id,
+            project_id,
+            task_id,
+            note
+        );
+
+        res.status(200).json(updated);
+    } catch (error) {
+        console.error("Error updating tracking:", error);
+        res.status(500).json({ message: "Error updating time tracking." });
+    }
+};
+
+exports.getCustomerMonthlySummary = async (req, res) => {
+    try {
+        const customerId = req.params.id;
+        const summary = await timeTrackingModel.getMonthlyTrackingSummaryForCustomer(customerId);
+        res.json(summary);
+    } catch (error) {
+        console.error("Error fetching customer summary:", error);
+        res.status(500).json({ message: "Error fetching summary." });
+    }
+};
+

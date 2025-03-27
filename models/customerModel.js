@@ -4,7 +4,7 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
 const getAllCustomers = async () => {
-    const result = await pool.query("SELECT * FROM customers ORDER BY created_at DESC");
+    const result = await pool.query("SELECT * FROM customers ORDER BY id ASC");
     return result.rows;
 };
 
