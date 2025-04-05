@@ -1,4 +1,4 @@
-const customerModel = require("../models/customerModel");
+const customerModel = require("../oldModels/customerModel");
 
 // Getting all customers for customer list
 exports.getAllCustomers = async (req, res) => {

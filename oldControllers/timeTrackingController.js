@@ -1,4 +1,4 @@
-const timeTrackingModel = require("../models/timeTrackingModel");
+const timeTrackingModel = require("../oldModels/timeTrackingModel");
 
 // ✅ Start a new time tracking session
 exports.startTracking = async (req, res) => {

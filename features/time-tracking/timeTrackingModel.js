@@ -4,7 +4,7 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
 
-// ✅ Start a new time tracking entry
+// Start a new time tracking entry
 const startTimeTracking = async (user_id, note) => {
     const result = await pool.query(
         "INSERT INTO time_tracking (user_id, note, start_time) VALUES ($1, $2, NOW()) RETURNING *",
@@ -13,22 +13,8 @@ const startTimeTracking = async (user_id, note) => {
     return result.rows[0];
 };
 
-// ✅ Stop time tracking and ensure task, project, and customer are selected
+// Stop time tracking and ensure task, project, and customer are selected
 const stopTimeTracking = async (id, user_id, project_id, task_id, customer_id) => {
-    // Convert customer_id to number to match the assignedCustomers data type
-    const numericCustomerId = Number(customer_id);
-
-    // Fetch assigned customers
-    const assignedCustomers = await getAssignedCustomers(user_id);
-
-    // Ensure selected customer exists in assigned customers list
-    const customerExists = assignedCustomers.some(customer => Number(customer.id) === numericCustomerId);
-
-    if (!customerExists) {
-        throw new Error("Selected customer is not assigned to this user.");
-    }
-
-    // Stop tracking and update database
     const result = await pool.query(
         `UPDATE time_tracking 
          SET end_time = NOW(),
@@ -38,13 +24,13 @@ const stopTimeTracking = async (id, user_id, project_id, task_id, customer_id) =
              duration_hours = EXTRACT(HOUR FROM (NOW() - start_time)),
              duration_minutes = EXTRACT(MINUTE FROM (NOW() - start_time))
          WHERE id = $1 AND user_id = $5 RETURNING *`,
-        [id, project_id, task_id, numericCustomerId, user_id]
+        [id, project_id, task_id, customer_id, user_id]
     );
 
     return result.rows[0];
 };
 
-// ✅ Get active time tracking session
+// Get active time tracking session
 const getActiveTracking = async (user_id) => {
     const result = await pool.query(
         "SELECT * FROM time_tracking WHERE user_id = $1 AND end_time IS NULL ORDER BY start_time DESC LIMIT 1",
@@ -53,7 +39,7 @@ const getActiveTracking = async (user_id) => {
     return result.rows[0];
 };
 
-// ✅ Get all tracked time entries
+// Get all tracked time entries
 const getUserTimeEntries = async (user_id) => {
     const result = await pool.query(
         "SELECT * FROM time_tracking WHERE user_id = $1 ORDER BY start_time DESC",
@@ -62,7 +48,7 @@ const getUserTimeEntries = async (user_id) => {
     return result.rows;
 };
 
-// ✅ Get all assigned customers for a user
+// Get all assigned customers for a user
 const getAssignedCustomers = async (user_id) => {
     const result = await pool.query(
         `SELECT c.id, c.name FROM customers c
@@ -73,7 +59,7 @@ const getAssignedCustomers = async (user_id) => {
     return result.rows;
 };
 
-// ✅ Fetch all time trackings (User sees their own, Admin sees all)
+// Fetch all time tracking (User sees their own, Admin sees all)
 const getAllTimeTracking = async (userId, isAdmin) => {
     const query = isAdmin
         ? `SELECT t.*, u.username, c.name AS customer_name, c.billing_type, p.name AS project_name, task.name AS task_name
@@ -96,7 +82,7 @@ const getAllTimeTracking = async (userId, isAdmin) => {
     return result.rows;
 };
 
-// ✅ Fetch active time trackings (User sees own, Admin sees all)
+// Fetch active time tracking (User sees own, Admin sees all)
 const getAllActiveTracking = async (userId, isAdmin) => {
     const query = isAdmin
         ? `SELECT t.id, t.user_id, u.username, t.start_time, t.note
@@ -110,7 +96,7 @@ const getAllActiveTracking = async (userId, isAdmin) => {
     return result.rows;
 };
 
-// ✅ Add Manual Time Tracking (Automatically Calculate End Time)
+// Add manual time tracking (Automatically calculate end time)
 const addManualTracking = async (userId, customerId, projectId, taskId, startTime, endTime, durationHours, durationMinutes, note) => {
     const query = `
         INSERT INTO time_tracking (user_id, customer_id, project_id, task_id, start_time, end_time, duration_hours, duration_minutes, note)
@@ -123,6 +109,7 @@ const addManualTracking = async (userId, customerId, projectId, taskId, startTim
     return result.rows[0];
 };
 
+// Delete tracked time
 const deleteTracking = async (trackingId, userId, isAdmin) => {
     const query = isAdmin
         ? `DELETE FROM time_tracking WHERE id = $1 RETURNING *`
@@ -137,7 +124,6 @@ const deleteTracking = async (trackingId, userId, isAdmin) => {
 
     return result.rows[0];
 };
-
 
 const updateTracking = async (
     trackingId,
@@ -178,6 +164,7 @@ const updateTracking = async (
     return result.rows[0];
 };
 
+// Get monthly cost for Customer based on the tracked times
 const getMonthlyTrackingSummaryForCustomer = async (customerId) => {
     const query = `
         SELECT
@@ -193,7 +180,6 @@ const getMonthlyTrackingSummaryForCustomer = async (customerId) => {
     const result = await pool.query(query, [customerId]);
     return result.rows;
 };
-
 
 module.exports = {
     startTimeTracking,

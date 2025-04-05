@@ -2,12 +2,11 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const timeTrackingRoutes = require("./routes/timeTrackingRoutes");
-//const userRoutes = require("./routes/userRoutes")
 
 const app = express();
 
@@ -17,7 +16,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
-app.use("/auth", authRoutes);
+app.use("/auth", userRoutes);
 app.use("/auth/customers", customerRoutes);
 app.use("/auth/projects", projectRoutes);
 app.use("/auth/tasks", taskRoutes);

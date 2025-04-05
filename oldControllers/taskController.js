@@ -1,4 +1,4 @@
-const taskModel = require("../models/taskModel");
+const taskModel = require("../oldModels/taskModel");
 
 // ✅ Get all tasks
 exports.getAllTasks = async (req, res) => {

@@ -55,9 +55,13 @@ const updateUserStatus = async (id, is_active) => {
 // Create user (Check for duplicate email)
 const createUser = async (username, email, password, role) => {
     console.log(username + " email: " + email + " pass: " + password + " role " + role);
-    const existingUser = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
-    if (existingUser.rows.length > 0) {
+    const existingUserEmail = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
+    if (existingUserEmail.rows.length > 0) {
         throw new Error("Email already in use.");
+    }
+    const existingUserName = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
+    if (existingUserName.rows.length > 0) {
+        throw new Error("Username already in use.");
     }
 
     const result = await pool.query(
