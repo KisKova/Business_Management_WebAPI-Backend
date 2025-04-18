@@ -19,7 +19,7 @@ const getTaskById = async (id) => {
 // Create a new task
 const createTask = async (name) => {
     const existingTask = await pool.query("SELECT id FROM tasks WHERE name = $1", [name]);
-    if(existingTask) {
+    if(existingTask.rows.length > 0) {
         throw new Error("Task with this name already exists.");
     }
     const result = await pool.query("INSERT INTO tasks (name) VALUES ($1) RETURNING *", [name]);
@@ -29,7 +29,7 @@ const createTask = async (name) => {
 // Update task name
 const updateTask = async (id, name) => {
     const existingTask = await pool.query("SELECT id FROM tasks WHERE name = $1", [name]);
-    if(existingTask) {
+    if(existingTask.rows.length > 0) {
         throw new Error("Task with this name already exists.");
     }
     const result = await pool.query("UPDATE tasks SET name = $1 WHERE id = $2 RETURNING *", [name, id]);
@@ -39,7 +39,7 @@ const updateTask = async (id, name) => {
 // Delete a task
 const deleteTask = async (id) => {
     const trackedTask = await pool.query("SELECT id FROM time_tracking WHERE task_id = $1", [id]);
-    if(trackedTask) {
+    if(trackedTask.rows.length > 0) {
         throw new Error("Task cannot be deleted, it is assigned to a tracked time.");
     }
     await pool.query("DELETE FROM tasks WHERE id = $1", [id]);
