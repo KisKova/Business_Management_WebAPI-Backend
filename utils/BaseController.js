@@ -11,7 +11,7 @@ class BaseController {
             const result = await serviceMethod();
             res.status(200).json({ success: true, data: result });
         } catch (error) {
-            console.error(error);
+            //console.error(error);
             res.status(500).json({ success: false, message: error.message || 'Server error' });
         }
     }
