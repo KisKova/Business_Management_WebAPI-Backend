@@ -21,6 +21,7 @@
     "google-ads-api": "^19.0.2-rest-beta",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.17.0",
     "pg": "^8.13.3",
     "sequelize-mock": "^0.10.2",
     "supertest": "^7.1.0"

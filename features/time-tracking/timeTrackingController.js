@@ -8,9 +8,8 @@ const startTracking = (req, res) =>
         if (activeTracking) {
             throw new Error('You already have an active tracking session.');
         }
-        await timeTrackingModel.startTimeTracking(req.user.userId, req.body.note)
-    }
-    , { req });
+        return await timeTrackingModel.startTimeTracking(req.user.userId, req.body.note);
+    }, { req });
 
 const stopTracking = (req, res) =>
     BaseController.handleRequest(res, async () => {

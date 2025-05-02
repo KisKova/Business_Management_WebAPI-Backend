@@ -8,33 +8,41 @@ const client = new GoogleAdsApi({
 });
 
 const refreshToken = "1/8wHKhBIXtYONznn77e-BJupvXULYNf2ZkQq2BwDAY1w";
+const rootCustomerId = "5166320402"; // Your MCC ID
 
 const main = async () => {
+    const customer = client.Customer({
+        customer_id: rootCustomerId,
+        refresh_token: refreshToken,
+    });
+
+    const query = `
+        SELECT
+            customer_client.client_customer,
+            customer_client.descriptive_name,
+            customer_client.manager,
+            customer_client.level
+        FROM customer_client
+        WHERE customer_client.status = 'ENABLED' AND customer_client.manager = false
+    `;
+
     try {
-        const customer = client.Customer({
-            customer_id: 5166320402,
-            refresh_token: refreshToken,
-        });
-
-        const query = "SELECT customer_client.id, customer_client.descriptive_name, customer_client.manager, customer_client.level FROM customer_client WHERE customer_client.manager = true";
-
         const response = await customer.query(query);
 
-        const subMCCs = response.map(row => ({
-            id: row.customer_client.client_customer,
-            name: row.customer_client.descriptive_name,
-            level: row.customer_client.level,
-        }));
+        if (!Array.isArray(response)) {
+            throw new Error("Unexpected response format from Google Ads API.");
+        }
 
-        console.log("📂 Sub-MCC accounts under");
-        subMCCs.forEach(mcc =>
-            console.log(`→ ${mcc.name} (${mcc.id}) [level ${mcc.level}]`)
-        );
+        console.log(`\n📋 Accounts under MCC ${rootCustomerId}:`);
+        response.forEach(row => {
+            const acc = row.customer_client;
+            console.log(`→ ${acc.descriptive_name} (${acc.client_customer}) [Manager: ${acc.manager}, Level: ${acc.level}]`);
+        });
 
-        return subMCCs;
-    } catch (error) {
-        console.error("❌ FAILED to connect to Google Ads API");
-        console.error("→", error.message || error);
+        console.log(`\n✅ Total accounts found: ${response.length}`);
+    } catch (err) {
+        console.error("❌ Error while querying accounts:");
+        console.error(err.message || err);
     }
 };
 

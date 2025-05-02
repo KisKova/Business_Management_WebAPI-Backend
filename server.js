@@ -7,6 +7,7 @@ const customerRoutes = require("./routes/customerRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const timeTrackingRoutes = require("./routes/timeTrackingRoutes");
+const googleAdsRoutes = require("./routes/googleAdsRoutes")
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/auth/customers", customerRoutes);
 app.use("/auth/projects", projectRoutes);
 app.use("/auth/tasks", taskRoutes);
 app.use("/auth/time-tracking", timeTrackingRoutes);
+app.use("/google-ads", googleAdsRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5001;
