@@ -4,33 +4,6 @@ const userModel = require("./userModel");
 const BaseController = require("../../utils/BaseController");
 const {checkAdmin} = require("../../utils/roleCheck");
 
-/*exports.registerUser = (req, res) =>
-    BaseController.handleRequest(res, async () => {
-        const { username, email, password, role } = req.body;
-
-        // Extra checks
-        if (!username || !email || !password || !role) throw new Error("All fields are required!");
-        if (!email.endsWith("@ppcmedia.hu")) throw new Error("Only @ppcmedia.hu emails are allowed!");
-        if (role !== "user" && role !== "admin") throw new Error("Invalid role!");
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const existingUserEmail = await userModel.getUserByEmail(email);
-        if (existingUserEmail.rows.length > 0) {
-            throw new Error("Email already in use.");
-        }
-
-        const existingUserName = await userModel.getUserByUsername(username);
-        if (existingUserName.rows.length > 0) {
-            throw new Error("Username already in use.");
-        }
-
-        return await userModel.createUser(username, email, hashedPassword, role);
-    }, {
-        roleCheck: checkAdmin,
-        req
-    });*/
-
 const loginUser = (req, res) =>
     BaseController.handleRequest(res, async () => {
         const { identifier, password } = req.body;

@@ -22,7 +22,7 @@ app.use("/auth/customers", customerRoutes);
 app.use("/auth/projects", projectRoutes);
 app.use("/auth/tasks", taskRoutes);
 app.use("/auth/time-tracking", timeTrackingRoutes);
-app.use("/google-ads", googleAdsRoutes);
+app.use("/auth/google-ads", googleAdsRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5001;
