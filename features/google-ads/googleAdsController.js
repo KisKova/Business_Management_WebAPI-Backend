@@ -63,7 +63,7 @@ const createReport = async (req, res) => {
                     campaign.name,
                     metrics.impressions,
                     metrics.clicks,
-                    ${includeMonth ? "segments.month," : ""},
+                    ${includeMonth ? "segments.month," : ""}
                     metrics.ctr,
                     metrics.average_cpc,
                     metrics.cost_micros,
