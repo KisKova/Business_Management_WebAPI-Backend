@@ -63,27 +63,13 @@ const createReport = async (req, res) => {
                     campaign.name,
                     metrics.impressions,
                     metrics.clicks,
-                    ${includeMonth ? "segments.month," : ""}
-                    campaign.advertising_channel_type,
-                    metrics.cost_micros,
-                    metrics.conversions,
-                    metrics.conversions_value,
-                    metrics.all_conversions,
-                    metrics.all_conversions_value,
-                    metrics.cost_per_conversion,
-                    metrics.cost_per_all_conversions,
+                    ${includeMonth ? "segments.month," : ""},
                     metrics.ctr,
                     metrics.average_cpc,
-                    metrics.view_through_conversions,
-                    metrics.video_views,
-                    metrics.video_view_rate,
-                    metrics.content_budget_lost_impression_share,
-                    metrics.search_budget_lost_impression_share,
-                    metrics.conversions_from_interactions_rate,
-                    metrics.all_conversions_from_interactions_rate,
-                    metrics.interactions,
-                    metrics.interaction_rate,
-                    metrics.average_cost
+                    metrics.cost_micros,
+                    metrics.conversions,
+                    metrics.cost_per_conversion,
+                    metrics.conversions_from_interactions_rate
                 FROM campaign
                 WHERE
                     segments.date BETWEEN \'${startDate}\' AND \'${endDate}\'
@@ -145,20 +131,11 @@ const createReport = async (req, res) => {
 
                 doc.font("Helvetica").fontSize(9)
 
-                // 🔹 Define all the columns you want to include
                 const headers = [
-                    "Campaign",
-                    "Clicks",
-                    "Impressions",
-                    "CTR",
-                    "Avg CPC",
-                    "Cost",
-                    "Conversions",
-                    "CostPerConv",
-                    "Conversion rate"
+                    "Campaign", "Clicks", "Impressions", "CTR", "Avg CPC", "Cost",
+                    "Conversions", "CostPerConv", "Conversion rate"
                 ];
 
-                // 🔹 Build table rows starting with header row
                 const data = [headers];
 
                 results.forEach(row => {
