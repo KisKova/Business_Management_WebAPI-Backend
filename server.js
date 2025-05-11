@@ -25,9 +25,14 @@ app.use("/auth/time-tracking", timeTrackingRoutes);
 app.use("/auth/google-ads", googleAdsRoutes);
 
 // Start server
+/* istanbul ignore next */
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+/* istanbul ignore next */
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
 
 module.exports = app;

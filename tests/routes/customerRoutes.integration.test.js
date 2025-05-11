@@ -1,68 +1,144 @@
 const request = require('supertest');
 const app = require('../../server');
+const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
-jest.mock('../../middlewares/authMiddleware', () => ({
-    authenticateJWT: (req, res, next) => {
-        req.user = { userId: 1, role: 'admin' };
-        next();
-    },
-    isAdmin: (req, res, next) => {
-        if (req.user.role === 'admin') return next();
-        return res.status(403).json({ error: 'Forbidden' });
-    }
-}));
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-describe('Customer Routes Integration', () => {
-    it('GET /auth/customers - should fetch all customers', async () => {
-        const res = await request(app).get('/auth/customers');
-        expect([200, 500]).toContain(res.statusCode);
+describe('Customer Routes Integration (Isolated)', () => {
+    let token;
+    let customerId;
+    let userId;
+    const unique = Date.now();
+
+    beforeAll(async () => {
+        const email = `adminseed_${unique}@ppcmedia.hu`;
+        const username = `adminseed_${unique}`;
+
+        const hashedPassword = await bcrypt.hash('adminpass', 10);
+        await pool.query(`
+            INSERT INTO users (username, email, password, role, is_active)
+            VALUES ($1, $2, $3, 'admin', true)
+            ON CONFLICT (email) DO NOTHING;
+        `, [username, email, hashedPassword]);
+
+        const login = await request(app)
+            .post('/auth/login')
+            .send({ identifier: email, password: 'adminpass' });
+
+        token = login.body?.data?.token;
+        userId = login.body?.data?.user?.id;
+
+        expect(token).toBeDefined();
+        expect(userId).toBeDefined();
     });
 
-    it('POST /auth/customers - should create a customer', async () => {
-        const res = await request(app)
+    afterAll(async () => {
+        await pool.query(`DELETE FROM customer_users WHERE user_id = $1`, [userId]);
+        await pool.query(`DELETE FROM customers WHERE tax_number LIKE $1`, [`${unique}%`]);
+        await pool.query(`DELETE FROM users WHERE email = $1`, [`adminseed_${unique}@ppcmedia.hu`]);
+        await pool.end();
+    });
+
+    it('POST /auth/customers - should create a new customer', async () => {
+        const response = await request(app)
             .post('/auth/customers')
+            .set('Authorization', `Bearer ${token}`)
             .send({
-                name: 'New Customer',
-                hourly_fee: 120,
+                name: `Customer X ${unique}`,
+                hourly_fee: 100,
                 billing_type: 'hourly',
-                invoice_type: 'email',
-                tax_number: 'CUST123'
+                invoice_type: 'monthly',
+                tax_number: `${unique}`
             });
-        expect([200, 201, 500]).toContain(res.statusCode);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.data.name).toContain('Customer X');
+        customerId = response.body.data.id;
     });
 
-    it('GET /auth/customers/:id - should fetch a single customer', async () => {
-        const res = await request(app).get('/auth/customers/1');
-        expect([200, 404, 500]).toContain(res.statusCode);
+    it('GET /auth/customers - should fetch all customers', async () => {
+        await pool.query(`
+            INSERT INTO customers (name, hourly_fee, billing_type, invoice_type, tax_number)
+            VALUES ('Alpha Co ${unique}', 80, 'hourly', 'monthly', '${unique + 1}')
+        `);
+
+        const response = await request(app)
+            .get('/auth/customers')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(Array.isArray(response.body.data)).toBe(true);
+    });
+
+    it('GET /auth/customers/:id - should fetch a single customer by ID', async () => {
+        const inserted = await pool.query(`
+            INSERT INTO customers (name, hourly_fee, billing_type, invoice_type, tax_number)
+            VALUES ('Beta Co ${unique}', 120, 'hourly', 'monthly', '${unique + 2}') RETURNING id
+        `);
+        customerId = inserted.rows[0].id;
+
+        const response = await request(app)
+            .get(`/auth/customers/${customerId}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.data.name).toContain('Beta Co');
     });
 
     it('PUT /auth/customers/:id - should update a customer', async () => {
-        const res = await request(app)
-            .put('/auth/customers/1')
+        const inserted = await pool.query(`
+            INSERT INTO customers (name, hourly_fee, billing_type, invoice_type, tax_number)
+            VALUES ('Gamma Co ${unique}', 90, 'hourly', 'monthly', '${unique + 3}') RETURNING id
+        `);
+        customerId = inserted.rows[0].id;
+
+        const response = await request(app)
+            .put(`/auth/customers/${customerId}`)
+            .set('Authorization', `Bearer ${token}`)
             .send({
-                name: 'Updated Customer',
-                hourly_fee: 150,
-                billing_type: 'fixed',
-                invoice_type: 'pdf',
-                tax_number: 'CUST999'
+                name: `Gamma Updated ${unique}`,
+                hourly_fee: 95,
+                billing_type: 'hourly',
+                invoice_type: 'monthly',
+                tax_number: `${unique + 3}`
             });
-        expect([200, 500]).toContain(res.statusCode);
+
+        expect(response.statusCode).toBe(200);
     });
 
     it('POST /auth/customers/:customer_id/users - should assign user to customer', async () => {
-        const res = await request(app)
-            .post('/auth/customers/1/users')
-            .send({ user_id: 2 });
-        expect([200, 500]).toContain(res.statusCode);
+        const inserted = await pool.query(`
+            INSERT INTO customers (name, hourly_fee, billing_type, invoice_type, tax_number)
+            VALUES ('Delta Co ${unique}', 110, 'hourly', 'monthly', '${unique + 4}') RETURNING id
+        `);
+        customerId = inserted.rows[0].id;
+
+        const response = await request(app)
+            .post(`/auth/customers/${customerId}/users`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ user_id: userId });
+
+        expect(response.statusCode).toBe(200);
     });
 
-    it('GET /auth/customers/:customer_id/users - should fetch users assigned to customer', async () => {
-        const res = await request(app).get('/auth/customers/1/users');
-        expect([200, 500]).toContain(res.statusCode);
-    });
+    it('GET /auth/customers/:customer_id/users - should return assigned users', async () => {
+        const inserted = await pool.query(`
+            INSERT INTO customers (name, hourly_fee, billing_type, invoice_type, tax_number)
+            VALUES ('Epsilon Co ${unique}', 130, 'hourly', 'monthly', '${unique + 5}') RETURNING id
+        `);
+        customerId = inserted.rows[0].id;
 
-    it('DELETE /auth/customers/:customer_id/users/:user_id - should remove assigned user', async () => {
-        const res = await request(app).delete('/auth/customers/1/users/2');
-        expect([200, 500]).toContain(res.statusCode);
+        await pool.query(`
+            INSERT INTO customer_users (customer_id, user_id) VALUES ($1, $2)
+        `, [customerId, userId]);
+
+        const response = await request(app)
+            .get(`/auth/customers/${customerId}/users`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.statusCode).toBe(200);
+        expect(Array.isArray(response.body.data)).toBe(true);
+        expect(response.body.data.some(u => u.id === userId)).toBe(true);
     });
 });

@@ -9,7 +9,7 @@ class BaseController {
             }
 
             const result = await serviceMethod();
-            console.log(result);
+            //console.log(result);
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             //console.error(error);

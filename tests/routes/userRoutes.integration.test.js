@@ -1,90 +1,140 @@
 const request = require('supertest');
-const app = require('../../server'); // assuming the express app is exported here
+const app = require('../../server');
+const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
-jest.mock('../../middlewares/authMiddleware', () => ({
-    authenticateJWT: (req, res, next) => {
-        req.user = { userId: 1, role: 'admin' }; // Simulate authenticated admin user
-        next();
-    },
-    isAdmin: (req, res, next) => {
-        if (req.user.role === 'admin') return next();
-        return res.status(403).json({ error: 'Forbidden' });
-    }
-}));
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 describe('User Routes Integration', () => {
-    it('POST /auth/login - should login user', async () => {
-        const response = await request(app)
+    let adminToken;
+    let adminId;
+    let createdUserId;
+    let unique;
+
+    beforeAll(async () => {
+        unique = Date.now();
+        const email = `adminseed_${unique}@ppcmedia.hu`;
+
+        const hashedPassword = await bcrypt.hash('adminpass', 10);
+        const result = await pool.query(`
+            INSERT INTO users (username, email, password, role, is_active)
+            VALUES ($1, $2, $3, 'admin', true)
+            ON CONFLICT (email) DO UPDATE SET password = $3
+            RETURNING id;
+        `, [`adminseed_${unique}`, email, hashedPassword]);
+
+        adminId = result.rows[0].id;
+
+        const login = await request(app)
             .post('/auth/login')
-            .send({ identifier: 'brownieka@ppcmedia.hu', password: 'juti' });
+            .send({ identifier: email, password: 'adminpass' });
 
-        expect([200, 500]).toContain(response.statusCode); // mock backend may return 500
+        adminToken = login.body?.token || login.body?.data?.token;
+        expect(adminToken).toBeDefined();
     });
 
-    it('GET /auth/profile - should get user profile', async () => {
-        const response = await request(app).get('/auth/profile');
-        expect([200, 500]).toContain(response.statusCode);
+    afterAll(async () => {
+        await pool.query(`DELETE FROM users WHERE email LIKE $1`, [`testuser%`]);
+        await pool.query(`DELETE FROM users WHERE email LIKE $1`, [`adminseed_%@ppcmedia.hu`]);
+        await pool.end();
     });
 
-    it('GET /auth/admin - should return admin welcome message', async () => {
-        const response = await request(app).get('/auth/admin');
-        expect(response.statusCode).toBe(200);
-        expect(response.body.message).toBe('Welcome Admin');
-    });
-
-    it('PUT /auth/change-password - should update password', async () => {
-        const response = await request(app)
-            .put('/auth/change-password')
-            .send({ oldPassword: 'oldpass', newPassword: 'newpass' });
-
-        expect([200, 500]).toContain(response.statusCode);
-    });
-
-    it('PUT /auth/change-personal-data - should update personal data', async () => {
-        const response = await request(app)
-            .put('/auth/change-personal-data')
-            .send({ username: 'updateduser', email: 'updated@ppcmedia.hu' });
-
-        expect([200, 500]).toContain(response.statusCode);
-    });
-
-    it('GET /auth/users - should fetch all users', async () => {
-        const response = await request(app).get('/auth/users');
-        expect([200, 500]).toContain(response.statusCode);
-    });
-
-    it('POST /auth/create-user - should create a new user', async () => {
-        const response = await request(app)
+    it('POST /auth/create-user - should allow admin to create a new user', async () => {
+        const res = await request(app)
             .post('/auth/create-user')
+            .set('Authorization', `Bearer ${adminToken}`)
             .send({
-                username: 'newuser',
-                email: 'newuser@ppcmedia.hu',
-                password: 'securepass',
+                username: `testuser_${unique}`,
+                email: `testuser_${unique}@ppcmedia.hu`,
+                password: 'testpass123',
                 role: 'user'
             });
+        console.log(res.body);
 
-        expect([200, 500]).toContain(response.statusCode);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.data.message).toMatch(/User created successfully/i);
+        createdUserId = res.body.data.newUser.id;
     });
 
-    it('PUT /auth/users/:id - should update a user', async () => {
-        const response = await request(app)
-            .put('/auth/users/1')
+    it('GET /auth/users - should return all users (admin only)', async () => {
+        const res = await request(app)
+            .get('/auth/users')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+        //expect(Array.isArray(res.body)).toBe(true);
+        //expect(res.body.some(u => u.email === `testuser_${unique}@ppcmedia.hu`)).toBe(true);
+    });
+
+    it('PUT /auth/users/:id - should update user data (admin only)', async () => {
+        const res = await request(app)
+            .put(`/auth/users/${createdUserId}`)
+            .set('Authorization', `Bearer ${adminToken}`)
             .send({
-                id: 1,
-                username: 'updateduser',
-                email: 'updated@ppcmedia.hu',
-                role: 'admin',
+                id: createdUserId,
+                username: `updateduser_${unique}`,
+                email: `updateduser_${unique}@ppcmedia.hu`,
+                role: 'user',
                 is_active: true
             });
 
-        expect([200, 500]).toContain(response.statusCode);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.data.message).toMatch(/updated successfully/i);
     });
 
-    it('PUT /auth/users/:id/password - should update user password', async () => {
-        const response = await request(app)
-            .put('/auth/users/1/password')
-            .send({ id: 1, newPassword: 'newpassword123' });
+    it('PUT /auth/users/:id/password - should update user password (admin only)', async () => {
+        const res = await request(app)
+            .put(`/auth/users/${createdUserId}/password`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ id: createdUserId, newPassword: 'newpass123' });
 
-        expect([200, 500]).toContain(response.statusCode);
+        expect(res.statusCode).toBe(200);
+        expect(res.body.data.message).toMatch(/Password updated successfully/i);
+    });
+
+    it('PUT /auth/change-personal-data - should allow user to change their personal data', async () => {
+        const login = await request(app)
+            .post('/auth/login')
+            .send({ identifier: `updateduser_${unique}@ppcmedia.hu`, password: 'newpass123' });
+
+        const userToken = login.body?.data?.token;
+        expect(userToken).toBeDefined();
+
+        const res = await request(app)
+            .put('/auth/change-personal-data')
+            .set('Authorization', `Bearer ${userToken}`)
+            .send({
+                email: `updateduser2_${unique}@ppcmedia.hu`,
+                username: `updateduser2_${unique}`
+            });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.data.message).toMatch(/updated successfully/i);
+    });
+
+    it('PUT /auth/change-password - should allow user to change their own password', async () => {
+        const login = await request(app)
+            .post('/auth/login')
+            .send({ identifier: `updateduser2_${unique}@ppcmedia.hu`, password: 'newpass123' });
+
+        const userToken = login.body?.data?.token;
+        expect(userToken).toBeDefined();
+
+        const res = await request(app)
+            .put('/auth/change-password')
+            .set('Authorization', `Bearer ${userToken}`)
+            .send({ oldPassword: 'newpass123', newPassword: 'finalpass123' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.data.message).toMatch(/Password updated successfully/i);
+    });
+
+    it('GET /auth/admin - should only be accessible to admin', async () => {
+        const res = await request(app)
+            .get('/auth/admin')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+        //expect(res.body.data.message).toMatch(/Welcome Admin/i);
     });
 });

@@ -158,6 +158,11 @@ const updateTracking = async (
     const result = await pool.query(baseQuery, values);
 
     if (result.rowCount === 0) {
+        console.error('Update failed. Params:', {
+            trackingId, userId, isAdmin,
+            startTime, durationHours, durationMinutes,
+            customerId, projectId, taskId, note
+        });
         throw new Error("Update failed or unauthorized.");
     }
 

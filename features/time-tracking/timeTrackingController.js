@@ -94,7 +94,7 @@ const addManualTracking = (req, res) =>
 
         const userId = req.user.userId;
 
-        if (!customer_id || !project_id || !task_id || !start_time || !duration_hours || !duration_minutes) {
+        if (customer_id == null || project_id == null || task_id == null || start_time == null || duration_hours == null || duration_minutes == null) {
             throw new Error('All fields are required.');
         }
 

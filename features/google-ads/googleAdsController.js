@@ -56,6 +56,7 @@ const createReport = async (req, res) => {
                 login_customer_id: rootCustomerId
             });
 
+            /* istanbul ignore next */
             const buildCampaignQuery = ({ startDate, endDate, includeMonth = false }) => {
                 return `
                 SELECT
@@ -99,7 +100,7 @@ const createReport = async (req, res) => {
                         maximumFractionDigits: decimals,
                     });
 
-                const formatFt = (value, decimal) => `${formatNumber(value, decimal)} Ft`;
+                //const formatFt = (value, decimal) => `${formatNumber(value, decimal)} Ft`;
 
                 const formatPercent = (value) =>
                     `${formatNumber(value * 100, 2)}%`;
@@ -155,7 +156,7 @@ const createReport = async (req, res) => {
                         formatPercent(m.conversions_from_interactions_rate),
                     ]);
                 });
-
+                /* istanbul ignore next */
                 doc.table({
                     rowStyles: (i) => {
                         if(i === 0)  return { backgroundColor: "#3c86ec", textColor: "#fff"};

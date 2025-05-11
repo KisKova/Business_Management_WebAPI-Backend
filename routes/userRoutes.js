@@ -8,7 +8,7 @@ const router = express.Router();
 router.post("/login", authController.loginUser);
 
 // Profile
-router.get("/profile", authMiddleware.authenticateJWT, authController.getProfileInfo);
+//router.get("/profile", authMiddleware.authenticateJWT, authController.getProfileInfo);
 
 router.get("/admin", authMiddleware.authenticateJWT, authMiddleware.isAdmin, (req, res) => {
     res.json({ message: "Welcome Admin", user: req.user });

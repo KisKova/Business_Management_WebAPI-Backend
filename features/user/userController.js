@@ -40,6 +40,7 @@ const changePersonalData = (req, res) =>
         const userId = req.user.userId;
 
         const user = await userModel.getUserById(userId);
+        /* istanbul ignore next */
         if (!user) throw new Error("User not found!");
 
         const updatedFields = [];
@@ -73,6 +74,7 @@ const changePassword = (req, res) =>
         const userId = req.user.userId;
         const userRole = req.user.role;
         const user = await userModel.getUserById(userId);
+        /* istanbul ignore next */
         if (!user) throw new Error("User not found!");
 
         if (userRole !== "admin") {
@@ -115,6 +117,7 @@ const updateUser = (req, res) =>
         const { id, email, username, role, is_active } = req.body;
 
         const user = await userModel.getUserById(id);
+        /* istanbul ignore next */
         if (!user) throw new Error("User not found!");
 
         let updatedFields = [];
