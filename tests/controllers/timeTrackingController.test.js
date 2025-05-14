@@ -35,7 +35,9 @@ describe('TimeTracking Controller (full coverage)', () => {
         await timeTrackingController.startTracking(req, mockRes);
 
         expect(mockRes.status).toHaveBeenCalledWith(500);
-        expect(mockRes.json).toHaveBeenCalledWith({ success: false, message: expect.stringContaining('already have an active') });
+        expect(mockRes.json).toHaveBeenCalledWith({
+            success: false,
+            message: expect.stringContaining('already have an active') });
     });
 
     it('should stop tracking with valid session and customer', async () => {
