@@ -20,7 +20,7 @@ describe('User Controller (Full Coverage)', () => {
         jest.clearAllMocks();
     });
 
-    // --- Login ---
+    // *** Login ***
     it('loginUser - should login with email', async () => {
         const user = { id: 1, username: 'test', email: 'test@e.com', role: 'user', is_active: true, password: 'hash' };
         userModel.getUserByEmail.mockResolvedValue(user);
@@ -79,7 +79,7 @@ describe('User Controller (Full Coverage)', () => {
         expect(mockRes.status).toHaveBeenCalledWith(500);
     });
 
-    // --- Profile ---
+    // *** Profile ***
     it('getProfileInfo - returns user', async () => {
         const user = { id: 1, username: 'u' };
         userModel.getUserById.mockResolvedValue(user);
@@ -90,7 +90,7 @@ describe('User Controller (Full Coverage)', () => {
         expect(mockRes.json).toHaveBeenCalledWith({ success: true, data: user });
     });
 
-    // --- Personal Data ---
+    // *** Personal Data ***
     it('changePersonalData - updates email & username', async () => {
         const user = { id: 1, username: 'old', email: 'old@e.com' };
         userModel.getUserById.mockResolvedValue({ ...user });
@@ -130,7 +130,7 @@ describe('User Controller (Full Coverage)', () => {
         expect(mockRes.status).toHaveBeenCalledWith(500);
     });
 
-    // --- Password ---
+    // *** Password ***
     it('changePassword - for user with old check', async () => {
         userModel.getUserById.mockResolvedValue({ password: 'hash', role: 'user' });
         bcrypt.compare.mockResolvedValue(true);
@@ -172,7 +172,7 @@ describe('User Controller (Full Coverage)', () => {
         });
     });
 
-    // --- Get Users ---
+    // *** Get Users ***
     it('getAllUsers - returns users', async () => {
         const users = [{ id: 1, username: 'admin' }];
         userModel.getAllUsers.mockResolvedValue(users);
@@ -184,7 +184,7 @@ describe('User Controller (Full Coverage)', () => {
         expect(mockRes.json).toHaveBeenCalledWith({ success: true, data: users });
     });
 
-    // --- Create User ---
+    // *** Create User ***
     it('createUser - successful', async () => {
         userModel.getUserByEmail.mockResolvedValue(null);
         userModel.getUserByUsername.mockResolvedValue(null);
@@ -230,7 +230,7 @@ describe('User Controller (Full Coverage)', () => {
         expect(mockRes.status).toHaveBeenCalledWith(403);
     });
 
-    // --- Update User ---
+    // *** Update User ***
     it('updateUser - updates all fields', async () => {
         const user = { id: 1, username: 'old', email: 'old@e.com', role: 'user', is_active: true };
         userModel.getUserById.mockResolvedValueOnce(user);
