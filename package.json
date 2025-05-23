@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env NODE_ENV=test dotenv -e .env.test jest --runInBand --detectOpenHandles",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
@@ -18,11 +18,18 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
+    "google-ads-api": "^19.0.2-rest-beta",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.3"
+    "pdfkit": "^0.17.0",
+    "pg": "^8.13.3",
+    "sequelize-mock": "^0.10.2",
+    "supertest": "^7.1.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
+    "dotenv-cli": "^8.0.0",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.9"
   }
 }

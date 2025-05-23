@@ -1,4 +1,5 @@
 const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -35,11 +36,19 @@ const updateUserPassword = async (id, newPassword) => {
 
 // Update user email
 const updateUserEmail = async (id, newEmail) => {
+    const existingUser = await getUserByEmail(newEmail);
+    if (existingUser) {
+        throw new Error("Email already in use.");
+    }
     await pool.query("UPDATE users SET email = $1 WHERE id = $2", [newEmail, id]);
 }
 
 // Update user username
 const updateUserName = async (id, newName) => {
+    const existingUser = await getUserByUsername(newName);
+    if (existingUser) {
+        throw new Error("Username already in use.");
+    }
     await pool.query("UPDATE users SET username = $1 WHERE id = $2", [newName, id]);
 }
 
@@ -54,12 +63,6 @@ const updateUserStatus = async (id, is_active) => {
 
 // Create user (Check for duplicate email)
 const createUser = async (username, email, password, role) => {
-    console.log(username + " email: " + email + " pass: " + password + " role " + role);
-    const existingUser = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
-    if (existingUser.rows.length > 0) {
-        throw new Error("Email already in use.");
-    }
-
     const result = await pool.query(
         "INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, created_at",
         [username, email, password, role]
